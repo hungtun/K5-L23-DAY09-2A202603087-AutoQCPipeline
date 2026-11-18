@@ -1,4 +1,4 @@
-# Báo cáo Day 09 — Pham Huu Hung, 2A202603087
+# Báo cáo Day 09 — Phạm Hữu Hưng, 2A202603087
 
 ## 1. Kết luận trước
 Pipeline kết luận **Hold** với mã thoát 10. Lô dữ liệu đầu vào gồm 224 ảnh, bước nhận dữ liệu loại 22 ảnh lỗi nặng còn 202 ảnh đưa vào kiểm tra và xuất ra bản nháp tại `submission/export/clean_v1`. Toàn bộ lỗi bắt buộc đã được xử lý về 0/202 ảnh, nhưng sau khi người duyệt hết ngân sách 80/125 ảnh trong hàng đợi thì vẫn còn 38/202 ảnh chiếm 18.81% có cảnh báo chưa được duyệt, vượt ngưỡng Hold 10%.
