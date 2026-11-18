@@ -1,0 +1,23 @@
+{
+  "variant": "clean",
+  "seed": 1,
+  "epochs": 20,
+  "model": "yolo26n.pt",
+  "device": "0",
+  "map50": 0.6832,
+  "map50_95": 0.4815,
+  "precision": 0.757,
+  "recall": 0.6113,
+  "ap50_per_class": {
+    "car": 0.7362,
+    "person": 0.8303,
+    "truck": 0.4856,
+    "bus": 0.6808
+  },
+  "manifest_sha1": "f82e30248eaddf1ff91c3abcb7bce7b13095fb3b",
+  "config_sha1": "1dae8934d1e298f6e8729ada6321eaa8b1ffb817",
+  "batch": 16,
+  "imgsz": 640,
+  "train_images": 202,
+  "seconds": 88.1
+}

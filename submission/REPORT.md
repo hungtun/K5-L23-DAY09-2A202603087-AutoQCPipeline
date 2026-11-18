@@ -47,7 +47,21 @@ File `05_review_queue.csv` xếp thứ tự bằng cách cộng trọng số t�
 - Các lỗi gán nhầm lớp hoặc box vẽ lỏng ở mức ranh giới mà chính model `yolo26l` cũng dự đoán độ tự tin thấp hoặc có IoU xấp xỉ ngưỡng 0.5: trên tập `calib`, 1/6 lỗi `WRONG_CLASS` và 4/5 lỗi `LOOSE_BOX` bị bỏ sót ở ngưỡng `conf = 0.6`.
 
 ## 5. Train: raw vs clean (tùy chọn, chấm riêng)
-Chưa chạy. Hiện tại hoàn thiện và kiểm tra toàn bộ phần lõi của pipeline với `make check-core`, phần huấn luyện trên Google Colab sẽ được thực hiện bổ sung sau.
+Cấu hình thí nghiệm công bằng: cùng model `yolo26n.pt`, 20 epochs, batch 16, imgsz 640, seeds 0 và 1, cùng tập `gold_val` 40 ảnh và `test` 100 ảnh.
+
+| biến thể | #ảnh train | số seed | map50 (TB ± độ lệch) | map50_95 (TB ± độ lệch) | precision (TB ± độ lệch) | recall (TB ± độ lệch) |
+|---|---|---|---|---|---|---|
+| raw | 224 | 2 | 0.726 ± 0.000 | 0.512 ± 0.004 | 0.764 ± 0.061 | 0.649 ± 0.028 |
+| clean | 202 | 2 | 0.701 ± 0.025 | 0.487 ± 0.008 | 0.759 ± 0.003 | 0.625 ± 0.019 |
+
+Chênh mAP50 (clean − raw) = **-0.025**.
+
+- **So sánh với độ nhiễu và kết luận trung thực**: Mức chênh lệch mAP50 giữa `clean` và `raw` là -0.025, bằng đúng độ lệch chuẩn giữa hai seed của `clean` là 0.025, trong khi ở seed 0 thì `clean` đạt 0.718 rất sát với 0.726 của `raw` và độ lệch chuẩn Precision của `clean` ổn định hơn hẳn khi giảm từ 0.061 xuống 0.003. Do khác biệt nằm ngay trong biên độ nhiễu giữa các seed, ta kết luận trung thực là chưa đủ bằng chứng thống kê để khẳng định model train trên `clean` hiện tại có mAP cao hơn `raw`.
+- **Các giả thuyết giải thích và cách kiểm**:
+  1. *Rò rỉ tập test trong `raw`*: Tập `raw` chứa 5 ảnh `LEAK_TEST` trùng trực tiếp với ảnh trong tập thi `data/test` gồm `test_009`, `test_033`, `test_039`, `test_044` và `test_085` cùng 12 ảnh trùng lặp nội bộ, làm điểm đánh giá trên tập test của `raw` bị thổi phồng giả tạo; ngược lại `clean` đã xóa 5 ảnh rò rỉ này để đảm bảo đánh giá công bằng. *Cách kiểm*: Loại 5 ảnh bị rò rỉ khỏi `data/test` rồi chấm lại mAP của hai model.
+  2. *Lớp ít mẫu nhạy với nhiễu khởi tạo*: Lớp `truck` chỉ có 58 box trên toàn bộ 202 ảnh của `clean`, nên `AP50_truck` biến động mạnh giữa hai seed từ 0.5898 ở seed 0 xuống 0.4856 ở seed 1 kéo mAP trung bình giảm, trong khi lớp nhiều mẫu và được người duyệt sửa nhiều nhất là `person` đạt AP50 cao và ổn định ở mức 0.8162 và 0.8303. *Cách kiểm*: Chạy thêm các seed 2, 3, 4 và tách bảng AP50 theo từng lớp để đối chiếu với số box trong `class_stats.csv`.
+  3. *Bản `clean` đang ở mức Hold còn tồn đọng cảnh báo*: Do ngân sách giới hạn 80/125 ảnh, bản `clean` vẫn còn 38/202 ảnh chứa 57 cảnh báo ngữ nghĩa chưa qua người duyệt và bị giảm từ 224 xuống 202 ảnh train. *Cách kiểm*: Duyệt nốt 45 ảnh còn lại trong hàng đợi hoặc chạy thêm biến thể `oracle` với 100% nhãn người rồi train lại cùng 2 seed để đo mức trần của dữ liệu sạch.
+- **Việc tiếp theo**: Cấp thêm ngân sách người duyệt để xử lý nốt các ảnh cảnh báo còn lại nhằm đạt chuẩn Release, đồng thời loại bỏ 5 ảnh bị rò rỉ khỏi tập test khi đánh giá mô hình.
 
 ## 6. Quyết định và ghi chú AI
 (a) Quyết định cuối cùng cho lô dữ liệu là **Hold**. Để chuyển từ Hold sang **Release**, cần cấp thêm ngân sách người duyệt cho tối thiểu 18 ảnh nữa trong số 38 ảnh còn cảnh báo chưa duyệt, nhằm đưa số ảnh cảnh báo tồn đọng xuống tối đa 20/202 ảnh tức dưới ngưỡng 10%.
@@ -56,3 +70,5 @@ Chưa chạy. Hiện tại hoàn thiện và kiểm tra toàn bộ phần lõi c
 - Prompt chính: Viết 4 module `label_format`, `gate`, `autofix`, `second_opinion` bám sát docstring, đọc mọi ngưỡng từ `cfg`, giữ nguyên số dòng gốc khi có dòng trống và đảm bảo tính idempotent khi chạy lại.
 - Cách kiểm code AI: Chạy toàn bộ 79 test bằng `pytest`, chạy `make calibrate` kiểm tra độ nhạy trên tập `calib`, và chạy `make run` đối chiếu trực tiếp các báo cáo từ `01_intake` đến `08_summary.json`.
 - Một lần AI sai: Ở bước cắt box tràn biên trong `autofix`, nếu box nằm hoàn toàn ngoài ảnh thì sau khi cắt về đoạn 0..1 chiều rộng hoặc chiều cao sẽ bằng 0 hoặc âm; đã phát hiện và sửa thành xóa dòng `drop_line` thay vì ghi ra box rỗng.
+
+(c) Thưởng CVAT: Khi lọc `width < 20` trên tập 25 ảnh đầu hàng đợi review trong CVAT, bộ lọc bắt được 21 box thuộc 7 ảnh gồm `img_0020`, `img_0022`, `img_0026`, `img_0030`, `img_0051`, `img_0069` và `img_0161`. Khi đối chiếu với mã `BOX_TINY` của pipeline dùng ngưỡng cạnh ngắn dưới 12px, chỉ có 4 ảnh trong nhóm trên là `img_0026`, `img_0051`, `img_0069`, `img_0161` trùng khớp với 6 box thật sự quá nhỏ, còn các ảnh `img_0020`, `img_0022`, `img_0030` có các box người đi bộ chiều ngang 14..19px vẫn hợp lệ nên ngưỡng 12px của pipeline tránh được báo động giả tốt hơn ngưỡng 20px. Thuộc tính `can_review` được người gán hoặc công cụ AutoQC bật lên trên các box khó hoặc nghi ngờ để người duyệt lọc nhanh bằng `attr["can_review"]==true`, tương ứng với cơ chế gắn cờ `WARN` trong `second_opinion` và xếp hạng ưu tiên ở `05_review_queue.csv` của pipeline.
