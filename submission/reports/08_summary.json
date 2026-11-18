@@ -1,0 +1,18 @@
+{
+  "verdict": {
+    "decision": "Hold",
+    "n_errors": 0,
+    "n_warn_images": 38,
+    "n_images": 202,
+    "warn_ratio": 0.1881,
+    "reasons": [
+      "Không còn lỗi bắt buộc, nhưng tỉ lệ ảnh còn cảnh báo chưa duyệt là 38/202 (18.81%) >= ngưỡng Hold (10%)."
+    ]
+  },
+  "reviewed": 80,
+  "budget": 80,
+  "seconds": 3.3,
+  "exported": "/Users/hung/hacker/VinUni/K5-L23-DAY09-2A202603087-AutoQCPipeline/submission/export/clean_v1",
+  "config_sha1": "1dae8934d1e298f6e8729ada6321eaa8b1ffb817",
+  "review_sim_sha1": "7988ca22827f780a7043a2300490e679a1697154"
+}
